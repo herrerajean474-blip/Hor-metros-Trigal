@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLORES EL TRIGAL - SISTEMA MAESTRO V3</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --azul-trigal: #1F3361;
+            --dorado-trigal: #FFD40A;
+            --fondo-gris: #f0f2f5;
+            --verde-ok: #28a745;
+            --rojo-error: #dc3545;
+        }
+
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 1400px; margin: auto; background-color: var(--fondo-gris); color: #333; }
+        .hidden { display: none !important; }
+        .container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .main-content { flex: 1; min-width: 300px; }
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        label { display: block; background: var(--azul-trigal); color: var(--dorado-trigal); padding: 6px 12px; border-radius: 4px; margin-bottom: 5px; font-size: 0.85em; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 12px; box-sizing: border-box; font-size: 1em; }
+        
+        button { 
+            cursor: pointer; border: none; border-radius: 4px; padding: 10px 15px; font-weight: bold; 
+            transition: 0.3s; background-color: var(--azul-trigal); color: var(--dorado-trigal);
+            text-transform: uppercase; font-size: 0.85em;
+        }
+        button:hover { opacity: 0.9; box-shadow: 0 4px 10px rgba(31, 51, 97, 0.3); }
+        .btn-main { width: 100%; font-size: 1.1em; padding: 15px; margin-top: 10px; }
+        .btn-export { background: #157347; color: white; }
+        .btn-clear { background: #6c757d; color: white; }
+        .btn-search { background: var(--azul-trigal); color: var(--dorado-trigal); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+        th { background: var(--azul-trigal); color: var(--dorado-trigal); padding: 12px; font-size: 0.85em; position: sticky; top: 0; }
+        td { border: 1px solid #eee; padding: 10px; text-align: center; font-size: 0.9em; font-weight: 500; }
+        
+        .status-ok { color: white; background-color: var(--verde-ok); border-radius: 4px; padding: 4px 8px; font-weight: bold; }
+        .status-error { color: white; background-color: var(--rojo-error); border-radius: 4px; padding: 4px 8px; font-weight: bold; }
+        
+        .bloque-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 5px; }
+        .bloque-button { height: 45px; font-size: 1em; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .bloque-button.active { background-color: var(--azul-trigal) !important; color: var(--dorado-trigal) !important; border: 2px solid var(--dorado-trigal); }
+
+        #clock { font-family: 'Courier New', monospace; font-size: 1.4em; color: var(--azul-trigal); font-weight: bold; }
+        
+        @keyframes parpadeo { 0% { background: #ff0000; } 50% { background: #8b0000; } 100% { background: #ff0000; } }
+        .swal-alarma { animation: parpadeo 0.5s infinite; color: white !important; }
+
+        .filter-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e0e0e0; }
+        .btn-group-filter { display: flex; gap: 5px; align-items: flex-end; }
+    </style>
+</head>
+<body>
+
+    <div id="login-container">
+        <div id="login-box" style="text-align: center; background: white; padding: 40px; border-radius: 12px; margin: 10vh auto; width: 350px; box-shadow: 0 15px 35px rgba(0,0,0,0.2);">
+            <h2 style="color:var(--azul-trigal)">FLORES EL TRIGAL</h2>
+            <select id="username" style="margin-top:10px;"></select>
+            <input type="password" id="password" placeholder="Contraseña">
+            <button onclick="login()" class="btn-main">INGRESAR</button>
+        </div>
+    </div>
+
+    <div id="app-content" class="hidden">
+        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom: 2px solid var(--azul-trigal); padding-bottom: 10px;">
+            <h1 style="color:var(--azul-trigal); margin:0; font-size: 1.5em;">SISTEMA DE LECTURAS</h1>
+            <div>
+                <span id="display-user" style="font-weight:bold; color: var(--azul-trigal); background: var(--dorado-trigal); padding: 5px 10px; border-radius: 4px; margin-right:10px;"></span>
+                <button onclick="logout()" style="background: #dc3545; color: white;">SALIR</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <div id="side-bloques" class="panel" style="width:320px;">
+                <h3 style="color: var(--azul-trigal); margin-top:0;">💡 BLOQUES</h3>
+                <div id="btn-container-bloques" class="bloque-grid"></div>
+            </div>
+
+            <div class="main-content">
+                <div id="panel-mantenimiento" class="panel hidden">
+                    <h3>⚙️ CONFIGURACIÓN SISTEMA</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                        <div>
+                            <label>Estructura General:</label>
+                            <small>Cant. Bloques:</small><input type="number" id="conf-bloques-qty">
+                            <small>Cant. Contactores:</small><input type="number" id="conf-cont-qty">
+                            <label>Operarios:</label>
+                            <textarea id="conf-ops" rows="2"></textarea>
+                        </div>
+                        <div>
+                            <label>Umbrales de Alarma:</label>
+                            <div style="display:flex; gap:5px;">
+                                <input type="number" id="set-blq-num" placeholder="Blq">
+                                <input type="number" id="set-blq-hrs" step="0.1" placeholder="Hrs">
+                                <button onclick="agregarUmbral()">AÑADIR</button>
+                            </div>
+                            <div id="umbral-list-container" style="max-height:100px; overflow-y:auto; margin-top:10px; border:1px solid #ddd; padding:5px;"></div>
+                        </div>
+                    </div>
+                    <button onclick="guardarConfig()" style="margin-top:15px; width:100%;">APLICAR CAMBIOS</button>
+                </div>
+
+                <div id="panel-lectura" class="panel">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="margin:0; color: var(--azul-trigal)">📝 REGISTRO DE LECTURA</h3>
+                        <div id="clock">00:00:00</div>
+                    </div>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                        <div><label>Bloque:</label><input type="number" id="inp-bloque" onchange="getAnterior()"></div>
+                        <div><label>Contactor:</label><select id="inp-cont" onchange="getAnterior()"></select></div>
+                        <div><label>Lectura Actual:</label><input type="number" id="inp-lectura" step="0.1"></div>
+                    </div>
+
+                    <div id="msg-anterior" style="margin: 10px 0; font-weight:bold; background:#eef2ff; padding:12px; border-radius:4px; border-left: 5px solid var(--azul-trigal);">
+                        Seleccione bloque...
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div>
+                            <label>Novedad:</label>
+                            <select id="inp-obs" onchange="toggleObsDetalle()">
+                                <option value="Sin novedades">Sin novedades</option>
+                                <option value="Breaker disparado">Breaker disparado</option>
+                                <option value="Contactor apagado">Contactor apagado</option>
+                                <option value="Breaker apagado">Breaker apagado</option>
+                                <option value="Extensión en corto">Extensión en corto</option>
+                                <option value="Cambio de bombillo">Cambio de bombillo</option>
+                                <option value="Otra novedad">Otra novedad...</option>
+                            </select>
+                        </div>
+                        <div id="div-obs-extra" class="hidden">
+                            <label id="lbl-extra">Detalle:</label>
+                            <input type="text" id="inp-obs-extra">
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+                        <input type="date" id="inp-fecha">
+                        <input type="time" id="inp-hora" readonly style="background:#f0f0f0">
+                    </div>
+                    <button onclick="validarYGuardar()" class="btn-main">💾 GUARDAR LECTURA</button>
+                </div>
+
+                <div class="panel">
+                    <h3 style="color: var(--azul-trigal)">🔎 HISTORIAL DE REGISTROS</h3>
+                    <div class="filter-group">
+                        <div><small>Bloque:</small><input type="number" id="f-bloque" placeholder="Exacto"></div>
+                        <div><small>Operario:</small><input type="text" id="f-op" placeholder="Nombre"></div>
+                        <div><small>Fecha:</small><input type="date" id="f-fecha"></div>
+                        <div><small>Estado:</small>
+                            <select id="f-estado">
+                                <option value="todos">Todos</option>
+                                <option value="error">Incompletos ⚠️</option>
+                            </select>
+                        </div>
+                        <div class="btn-group-filter">
+                            <button onclick="renderTabla()" class="btn-search" title="Buscar">🔍 BUSCAR</button>
+                            <button onclick="limpiarFiltros()" class="btn-clear" title="Limpiar">🧹</button>
+                            <button onclick="exportarCSV()" class="btn-export" title="Exportar">📥 EXPORTAR</button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table id="tabla-registros">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Operario</th>
+                                    <th>Blq</th>
+                                    <th>Ct</th>
+                                    <th>Lectura</th>
+                                    <th>Dif.</th>
+                                    <th>Novedad</th>
+                                    <th id="col-admin-head" class="hidden">X</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem("trigal_master_v3")) || {
+        config: { ops: ["Jean Herrera", "Juan Climaco"], bloques: 70, cont: 4 },
+        umbrales: {},
+        claves: { mantenimiento: "MTTO4567", administrativos: "ADM1234", operarios: "1234" },
+        historial: [],
+        luces: {}
+    };
+
+    function populateLoginOps() {
+        const sel = document.getElementById("username");
+        sel.innerHTML = '<option value="">Seleccione Usuario...</option><option value="mantenimiento">⚙️ Mantenimiento</option><option value="administrativos">📊 Administrativos</option>';
+        const group = document.createElement("optgroup"); group.label = "Operarios";
+        db.config.ops.forEach(o => group.innerHTML += `<option value="${o}">${o}</option>`);
+        sel.appendChild(group);
+    }
+
+    function login() {
+        const u = document.getElementById("username").value;
+        const p = document.getElementById("password").value;
+        let auth = (u === "mantenimiento" && p === db.claves.mantenimiento) || (u === "administrativos" && p === db.claves.administrativos) || (db.config.ops.includes(u) && p === db.claves.operarios);
+        if(auth) { localStorage.setItem("trigal_session", u); renderApp(); } else { Swal.fire("Error", "Credenciales incorrectas", "error"); }
+    }
+
+    function logout() { localStorage.removeItem("trigal_session"); location.reload(); }
+
+    function renderApp() {
+        const user = localStorage.getItem("trigal_session");
+        if(!user) { populateLoginOps(); return; }
+        
+        document.getElementById("login-container").classList.add("hidden");
+        document.getElementById("app-content").classList.remove("hidden");
+        document.getElementById("display-user").innerText = user.toUpperCase();
+
+        // LOGICA DE PERMISOS
+        const isMtto = user === "mantenimiento";
+        const isAdmin = user === "administrativos";
+        const isOp = db.config.ops.includes(user);
+
+        // Ocultar/Mostrar paneles según rol
+        document.getElementById("panel-mantenimiento").classList.toggle("hidden", !isMtto);
+        document.getElementById("col-admin-head").classList.toggle("hidden", !isMtto);
+        document.getElementById("side-bloques").classList.toggle("hidden", isAdmin);
+        document.getElementById("panel-lectura").classList.toggle("hidden", isAdmin);
+
+        if(isMtto) {
+            document.getElementById("conf-ops").value = db.config.ops.join(", ");
+            document.getElementById("conf-bloques-qty").value = db.config.bloques;
+            document.getElementById("conf-cont-qty").value = db.config.cont;
+        }
+
+        actualizarParametrosUI(); 
+        if(!isAdmin) renderBloques(); 
+        renderTabla(); 
+        renderUmbrales();
+    }
+
+    function actualizarParametrosUI() {
+        const selCont = document.getElementById("inp-cont");
+        selCont.innerHTML = "";
+        for(let i=1; i<=db.config.cont; i++) selCont.innerHTML += `<option value="${i}">${i}</option>`;
+        document.getElementById("inp-fecha").valueAsDate = new Date();
+    }
+
+    function renderBloques() {
+        const container = document.getElementById("btn-container-bloques");
+        container.innerHTML = "";
+        for(let i=1; i<=db.config.bloques; i++) {
+            const btn = document.createElement("button");
+            btn.innerText = i; btn.className = `bloque-button ${db.luces[i] ? 'active' : ''}`;
+            btn.onclick = () => { db.luces[i] = !db.luces[i]; document.getElementById("inp-bloque").value = i; getAnterior(); save(); renderBloques(); };
+            container.appendChild(btn);
+        }
+    }
+
+    function toggleObsDetalle() {
+        const obs = document.getElementById("inp-obs").value;
+        const divExtra = document.getElementById("div-obs-extra");
+        const lblExtra = document.getElementById("lbl-extra");
+        const show = (obs.includes("corto") || obs.includes("bombillo") || obs.includes("Otra"));
+        divExtra.classList.toggle("hidden", !show);
+        lblExtra.innerText = (obs.includes("corto") || obs.includes("bombillo")) ? "N° Cama:" : "Descripción:";
+    }
+
+    function getAnterior() {
+        const b = document.getElementById("inp-bloque").value;
+        const c = document.getElementById("inp-cont").value;
+        const reg = db.historial.filter(r => r.blq == b && r.ct == c).sort((a,b) => b.id - a.id)[0];
+        document.getElementById("msg-anterior").innerHTML = reg ? `Anterior: ${reg.lect} hrs (${reg.fecha} ${reg.hora})` : "Sin registros previos.";
+    }
+
+    async function validarYGuardar() {
+        const b = parseInt(document.getElementById("inp-bloque").value);
+        const l = parseFloat(document.getElementById("inp-lectura").value);
+        const c = document.getElementById("inp-cont").value;
+        const hora = document.getElementById("inp-hora").value;
+        const obsBase = document.getElementById("inp-obs").value;
+        const extra = document.getElementById("inp-obs-extra").value;
+        const obs = extra ? `${obsBase} (${extra})` : obsBase;
+
+        if(!b || isNaN(l)) return Swal.fire("Error", "Faltan datos", "error");
+        const regAnt = db.historial.filter(r => r.blq == b && r.ct == c).sort((a,b) => b.id - a.id)[0];
+        const dif = l - (regAnt ? regAnt.lect : 0);
+        if (dif < 0) return Swal.fire("Error", "Lectura menor a la anterior", "error");
+
+        if(db.umbrales[b] && dif < db.umbrales[b]) {
+            await Swal.fire({ title: '⚠️ TIEMPO INCOMPLETO', html: `Bloque ${b} Dif: ${dif.toFixed(2)}h. Requerido: ${db.umbrales[b]}h`, icon: 'warning', confirmButtonText: 'GUARDAR', confirmButtonColor: '#1F3361', customClass: { popup: 'swal-alarma' } });
+        }
+
+        db.historial.push({ id: Date.now(), fecha: document.getElementById("inp-fecha").value, hora: hora, op: localStorage.getItem("trigal_session"), blq: b, ct: c, lect: l, dif: dif, obs: obs });
+        save(); renderTabla(); 
+        document.getElementById("inp-lectura").value = "";
+        document.getElementById("inp-obs-extra").value = "";
+        document.getElementById("inp-obs").value = "Sin novedades";
+        toggleObsDetalle();
+        Swal.fire({ icon: 'success', title: 'Guardado', timer: 700, showConfirmButton: false });
+    }
+
+    function limpiarFiltros() {
+        document.getElementById("f-bloque").value = "";
+        document.getElementById("f-op").value = "";
+        document.getElementById("f-fecha").value = "";
+        document.getElementById("f-estado").value = "todos";
+        renderTabla();
+    }
+
+    function renderTabla() {
+        const user = localStorage.getItem("trigal_session");
+        const tbody = document.getElementById("tabla-body");
+        const fBlq = document.getElementById("f-bloque").value;
+        const fOp = document.getElementById("f-op").value.toLowerCase();
+        const fFecha = document.getElementById("f-fecha").value;
+        const fEstado = document.getElementById("f-estado").value;
+
+        tbody.innerHTML = "";
+        db.historial.slice().reverse().forEach(r => {
+            if (fBlq && r.blq != fBlq) return;
+            if (fOp && !r.op.toLowerCase().includes(fOp)) return;
+            if (fFecha && r.fecha !== fFecha) return;
+            const incompleto = db.umbrales[r.blq] && r.dif < db.umbrales[r.blq];
+            if (fEstado === "error" && !incompleto) return;
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${r.fecha}</td>
+                <td>${r.hora}</td>
+                <td>${r.op}</td>
+                <td><b>${r.blq}</b></td>
+                <td>${r.ct}</td>
+                <td>${r.lect}</td>
+                <td><span class="${db.umbrales[r.blq] ? (incompleto ? 'status-error' : 'status-ok') : ''}">${r.dif.toFixed(2)}h</span></td>
+                <td style="font-size:0.8em; text-align:left;">${r.obs}</td>
+                ${user==='mantenimiento' ? `<td><button onclick="borrar(${r.id})" style="background:red; color:white; padding:2px 5px">X</button></td>` : ''}
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function exportarCSV() {
+        let csv = "\uFEFFFecha,Hora,Operario,Bloque,Contactor,Lectura,Diferencia,Observacion\n";
+        db.historial.forEach(r => csv += `${r.fecha},${r.hora},${r.op},${r.blq},${r.ct},${r.lect},${r.dif.toFixed(2)},"${r.obs}"\n`);
+        const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+        link.download = `Backup_Trigal_${new Date().toISOString().slice(0,10)}.csv`; link.click();
+    }
+
+    function agregarUmbral() {
+        const b = document.getElementById("set-blq-num").value;
+        const h = document.getElementById("set-blq-hrs").value;
+        if(b && h) { db.umbrales[b] = parseFloat(h); renderUmbrales(); save(); renderTabla(); }
+    }
+
+    function renderUmbrales() {
+        const cont = document.getElementById("umbral-list-container");
+        if(cont) cont.innerHTML = Object.entries(db.umbrales).map(([b,h]) => `<div style="display:flex; justify-content:space-between; font-size:0.8em; border-bottom:1px solid #eee; padding:2px;"><span>B${b}: ${h}h</span><span onclick="delete db.umbrales[${b}]; renderUmbrales(); save();" style="color:red; cursor:pointer">[X]</span></div>`).join('');
+    }
+
+    function guardarConfig() {
+        db.config.bloques = parseInt(document.getElementById("conf-bloques-qty").value) || 70;
+        db.config.cont = parseInt(document.getElementById("conf-cont-qty").value) || 4;
+        db.config.ops = document.getElementById("conf-ops").value.split(",").map(s => s.trim()).filter(s => s);
+        save(); location.reload();
+    }
+
+    function save() { localStorage.setItem("trigal_master_v3", JSON.stringify(db)); }
+    function borrar(id) { if(confirm("¿Eliminar registro?")) { db.historial = db.historial.filter(r => r.id !== id); save(); renderTabla(); } }
+
+    setInterval(() => {
+        const d = new Date();
+        const ck = document.getElementById("clock");
+        if(ck) ck.innerText = d.toLocaleTimeString();
+        const ih = document.getElementById("inp-hora");
+        if(ih) ih.value = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+    }, 1000);
+
+    renderApp();
+</script>
+</body>
+</html>
